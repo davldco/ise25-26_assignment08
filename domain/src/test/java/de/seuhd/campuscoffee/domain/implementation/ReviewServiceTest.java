@@ -155,22 +155,43 @@ public class ReviewServiceTest {
                 .approvalCount(2)
                 .approved(false)
                 .build();
-        
+
         // when
         Review updatedReview = reviewService.updateApprovalStatus(unapprovedReview);
-        
+
         // then
         assertFalse(updatedReview.approved());
-        
+
         // when
         Review approvedReview = unapprovedReview.toBuilder()
                 .approvalCount(approvalConfiguration.minCount())
                 .build();
-        
+
         // when
         updatedReview = reviewService.updateApprovalStatus(approvedReview);
-        
+
         // then
         assertTrue(updatedReview.approved());
+    }
+
+    @Test
+    void testElseBranch() {
+        // given
+        Review review = TestFixtures.getReviewFixtures().getFirst().toBuilder()
+                .approvalCount(approvalConfiguration.minCount() - 2) // +1 reicht NICHT
+                .approved(false)
+                .build();
+
+        User approver = TestFixtures.getUserFixtures().getLast();
+
+        when(userDataService.getById(approver.getId())).thenReturn(approver);
+        when(reviewDataService.getById(review.getId())).thenReturn(review);
+        when(reviewDataService.upsert(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // when
+        Review result = reviewService.approve(review, approver.getId());
+
+        // then
+        assertFalse(result.approved());
     }
 }
